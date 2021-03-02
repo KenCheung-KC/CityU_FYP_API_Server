@@ -9,6 +9,7 @@ router.get('/', function(req, res, next) {
 });
 router.get('/hikingToursList', hikingToursController.hikingToursList)
 router.post('/joinHikingTour/:id', hikingToursController.joinHikingTour)
-router.get('/getUserJoinedTours/:id', hikingToursController.getUserJoinedTours)
+router.get('/getUserJoinedTours/:userId', hikingToursController.getUserJoinedTours)
+router.get('/getUserHostedTours/:userId', hikingToursController.getUserHostedTours)
 
 module.exports = router;
