@@ -1,8 +1,6 @@
 const hikingToursList = async (req, res) => {
-    console.log('hiking tour controller get called')
     // const hikingToursResult = await pool.query(`SELECT *, hikingRouteImage, name AS hikingroutename FROM hikingTours, hikingRoutes WHERE hikingTours.id = hikingRoutes.id;`)
     const hikingToursResult = await pool.query(`SELECT hikingTours.*, hikingRouteImage, name AS hikingroutename, username AS hostname FROM hikingTours, hikingRoutes, users WHERE hikingTours.id = hikingRoutes.id AND hikingTours.hostId = users.id;`)
-    console.log('tours result: ', hikingToursResult.rows)
     const hikingTours = hikingToursResult.rows
 
     res.send({
@@ -26,8 +24,6 @@ const joinHikingTour = async (req, res) => {
     }
 
     const checkParticipateRecord = await pool.query(`SELECT * FROM hikingTourParticipants WHERE participantId = ${userId} AND hikingTourId = ${id}`)
-    // console.log('checkParticipateRecord: ', checkParticipateRecord)
-
     const userAlreadyParticipated = checkParticipateRecord.rows.length > 0 ? true : false
 
     if (!userAlreadyParticipated) {
@@ -40,7 +36,6 @@ const joinHikingTour = async (req, res) => {
             message: 'Tour joined!',
         })
     } else {
-        console.log('already joined!')
         res.send({
             message: 'Already participated!',
             userJoinedTours: [],
@@ -49,27 +44,32 @@ const joinHikingTour = async (req, res) => {
 }
 
 const getUserJoinedTours = async (req, res) => {
-    const { id } = req.params
-    console.log('userid: ', id)
-    console.log('getMyJoinedTours called!')
-
-    const userJoinedTours = await pool.query(`SELECT * from hikingTourParticipants WHERE participantId = ${id}`)
-    console.log('aaa: ', userJoinedTours)
+    const { userId } = req.params
+    const userJoinedTours = await pool.query(`SELECT * from hikingTourParticipants WHERE participantId = ${userId}`)
     const userJoinedToursId = userJoinedTours.rows.map((tour) => {
         return tour.hikingtourid
     })
-    console.log('bbb: ', userJoinedToursId)
 
     const userJoinedToursDetails = await Promise.all(userJoinedToursId.map(async (hikingTourId) => {
         const tourDetails = await pool.query(`SELECT hikingTours.*, hikingRoutes.hikingRouteImage, hikingRoutes.name AS hikingRouteName, users.username AS hostName from hikingTours, hikingRoutes, users WHERE hikingTours.id = ${hikingTourId} AND hikingTours.hikingRouteId = hikingRoutes.id AND hikingTours.hostId = users.id`)
-        // console.log('details: ', tourDetails.rows[0])
         return tourDetails.rows[0]
     }))
-    console.log('ccc: ', userJoinedToursDetails)
 
     res.send({
-        message: 'hello',
+        message: 'Message from getuserJoinedTours',
         userJoinedTours: userJoinedToursDetails,
+    })
+}
+
+const getUserHostedTours = async (req, res) => {
+    const { userId } = req.params
+    const userHostedToursResult = await pool.query(`SELECT hikingTours.*, hikingRoutes.hikingRouteImage, hikingRoutes.name AS hikingRouteName, users.username AS hostName from hikingTours, hikingRoutes, users WHERE hostId = ${userId} AND hikingTours.hikingRouteId = hikingRoutes.id AND hikingTours.hostId = users.id`)
+
+    const userHostedTours = userHostedToursResult.rows
+
+    res.send({
+        message: 'Message from getUserHostedTours',
+        userHostedTours: userHostedTours,
     })
 }
 
@@ -77,4 +77,5 @@ module.exports = {
     hikingToursList,
     joinHikingTour,
     getUserJoinedTours,
+    getUserHostedTours,
 }
