@@ -45,7 +45,8 @@ const joinHikingTour = async (req, res) => {
 
 const getUserJoinedTours = async (req, res) => {
     const { userId } = req.params
-    const userJoinedTours = await pool.query(`SELECT * from hikingTourParticipants WHERE participantId = ${userId}`)
+    const userJoinedTours = await pool.query(`SELECT hikingTourParticipants.*, hikingTours.hostId AS hostId from hikingTourParticipants, hikingTours WHERE hikingTourParticipants.participantId = ${userId} AND hikingTourParticipants.hikingtourId = hikingTours.id AND hostId != ${userId}`)
+
     const userJoinedToursId = userJoinedTours.rows.map((tour) => {
         return tour.hikingtourid
     })
