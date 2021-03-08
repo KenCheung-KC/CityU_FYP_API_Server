@@ -1,6 +1,6 @@
 const hikingToursList = async (req, res) => {
     // const hikingToursResult = await pool.query(`SELECT *, hikingRouteImage, name AS hikingroutename FROM hikingTours, hikingRoutes WHERE hikingTours.id = hikingRoutes.id;`)
-    const hikingToursResult = await pool.query(`SELECT hikingTours.*, hikingRouteImage, name AS hikingroutename, username AS hostname FROM hikingTours, hikingRoutes, users WHERE hikingTours.id = hikingRoutes.id AND hikingTours.hostId = users.id;`)
+    const hikingToursResult = await pool.query(`SELECT hikingTours.*, hikingRoutes.hikingRouteImage, hikingRoutes.name AS hikingroutename, users.username AS hostname FROM hikingTours, hikingRoutes, users WHERE hikingTours.hikingRouteId = hikingRoutes.id AND hikingTours.hostId = users.id ORDER BY hikingTours.id DESC;`)
     const hikingTours = hikingToursResult.rows
 
     res.send({
@@ -74,9 +74,42 @@ const getUserHostedTours = async (req, res) => {
     })
 }
 
+const createTour = async (req, res) => {
+    const {
+        hostId,
+        tourName,
+        hikingRouteId,
+        maximumParticipants,
+        minimumParticipants,
+        dateAndTime,
+        tourDescription,
+    } = req.body
+
+    // some characters will be encoded e.g. #, +, $, @ and space etc.
+    const newDateAndTime = dateAndTime.replace(" ", "+");
+
+    // const sqlString = `INSERT INTO hikingTours (hikingRouteId, hostId, tourName, tourDescription, maximumParticipant, minimumParticipant, dateAndTime, restaurantIncluded, price) VALUES (${hikingRouteId}, ${hostId}, '${tourName}', '${tourDescription}', ${maximumParticipants}, ${minimumParticipants}, '${newDateAndTime}', FALSE, 0);`
+    // console.log('SQL: ', sqlString)
+
+    await pool.query(`INSERT INTO hikingTours (hikingRouteId, hostId, tourName, tourDescription, maximumParticipant, minimumParticipant, dateAndTime, restaurantIncluded, price) VALUES (${hikingRouteId}, ${hostId}, '${tourName}', '${tourDescription}', ${maximumParticipants}, ${minimumParticipants}, '${newDateAndTime}', FALSE, 0) RETURNING id;`, 
+    async (err, result) => {
+        if (err) {
+            console.log('database err: ', err)
+            return
+        }
+        let hikingTourId = result.rows[0].id
+        await pool.query(`INSERT INTO hikingTourParticipants (participantId, hikingTourId) VALUES (${hostId}, ${hikingTourId})`)
+    })
+
+    res.send({
+        message: "Tour created!",
+    })
+}
+
 module.exports = {
     hikingToursList,
     joinHikingTour,
     getUserJoinedTours,
     getUserHostedTours,
+    createTour,
 }

@@ -11,5 +11,6 @@ router.get('/hikingToursList', hikingToursController.hikingToursList)
 router.post('/joinHikingTour/:id', hikingToursController.joinHikingTour)
 router.get('/getUserJoinedTours/:userId', hikingToursController.getUserJoinedTours)
 router.get('/getUserHostedTours/:userId', hikingToursController.getUserHostedTours)
+router.post('/createTour', hikingToursController.createTour)
 
 module.exports = router;
