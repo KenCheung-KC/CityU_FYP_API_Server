@@ -1,8 +1,6 @@
 const hikingRouteList = async (req, res) => {
-    console.log('hiking route list get called!')
-
     const hikingRoutesResult = await pool.query(`SELECT * FROM hikingRoutes`)
-    console.log(hikingRoutesResult.rows)
+    // console.log(hikingRoutesResult.rows)
     const hikingRoutes = hikingRoutesResult.rows
 
     // setTimeout(() => {
@@ -19,10 +17,10 @@ const hikingRouteList = async (req, res) => {
 
 const getHikingRoute = async (req, res) => {
     const { id } = req.params
-    console.log("params id: ", id)
+    // console.log("params id: ", id)
 
     const hikingRoutesResult = await pool.query(`SELECT * FROM hikingRoutes WHERE id = ${id}`)
-    console.log('resultttt: ', hikingRoutesResult.rows)
+    // console.log('result: ', hikingRoutesResult.rows)
     const routeResult = hikingRoutesResult.rows[0]
 
     res.send({

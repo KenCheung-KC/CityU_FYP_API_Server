@@ -91,7 +91,7 @@ const createTour = async (req, res) => {
     // const sqlString = `INSERT INTO hikingTours (hikingRouteId, hostId, tourName, tourDescription, maximumParticipant, minimumParticipant, dateAndTime, restaurantIncluded, price) VALUES (${hikingRouteId}, ${hostId}, '${tourName}', '${tourDescription}', ${maximumParticipants}, ${minimumParticipants}, '${newDateAndTime}', FALSE, 0);`
     // console.log('SQL: ', sqlString)
 
-    await pool.query(`INSERT INTO hikingTours (hikingRouteId, hostId, tourName, tourDescription, maximumParticipant, minimumParticipant, dateAndTime, restaurantIncluded, price) VALUES (${hikingRouteId}, ${hostId}, '${tourName}', '${tourDescription}', ${maximumParticipants}, ${minimumParticipants}, '${newDateAndTime}', FALSE, 0) RETURNING id;`, 
+    await pool.query(`INSERT INTO hikingTours (hikingRouteId, hostId, tourName, tourDescription, maximumParticipant, minimumParticipant, dateAndTime,       restaurantIncluded, price) VALUES (${hikingRouteId}, ${hostId}, '${tourName}', '${tourDescription}', ${maximumParticipants}, ${minimumParticipants}, '${newDateAndTime}', FALSE, 0) RETURNING id;`, 
     async (err, result) => {
         if (err) {
             console.log('database err: ', err)
@@ -106,10 +106,38 @@ const createTour = async (req, res) => {
     })
 }
 
+const editTour = async (req, res) => {
+    const { tourId } = req.params
+    const {
+        hostId,
+        tourName,
+        hikingRouteId,
+        maximumParticipants,
+        minimumParticipants,
+        dateAndTime,
+        tourDescription,
+    } = req.body
+
+    const newDateAndTime = dateAndTime.replace(" ", "+");
+    await pool.query(`UPDATE hikingTours SET tourName = '${tourName}', tourDescription = '${tourDescription}', hikingRouteId = ${hikingRouteId},maximumParticipant = ${maximumParticipants}, minimumParticipant = ${minimumParticipants}, dateAndTime = '${newDateAndTime}' WHERE hikingTours.id = ${tourId};`, 
+    (err, result) => {
+        if(err) {
+            console.log('edit tour database err: ', err)
+        } else {
+            console.log('edit tour database result: ', result)
+        }
+    })
+
+    res.send({
+        message: 'Tour edited!',
+    })
+}
+
 module.exports = {
     hikingToursList,
     joinHikingTour,
     getUserJoinedTours,
     getUserHostedTours,
     createTour,
+    editTour,
 }

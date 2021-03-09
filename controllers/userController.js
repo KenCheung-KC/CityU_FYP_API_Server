@@ -82,9 +82,9 @@ const login = async (req, res) => {
         }
         message = 'login success'
         const token = jwt.sign(tokenPayload, process.env.JWT_SECRET_KEY);
-        console.log('token: ', token)
+        // console.log('token: ', token)
         const {password, ...userWithoutPassword} = user
-        console.log('userWithoutPassword: ', userWithoutPassword)
+        // console.log('userWithoutPassword: ', userWithoutPassword)
         res.send({
             token, 
             message,

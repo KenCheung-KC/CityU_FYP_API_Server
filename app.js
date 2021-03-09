@@ -15,12 +15,12 @@ var pool = db.getDBPool()
 global.pool = pool
 
 const verifyToken = (req, res, next) => {
-    console.log('verify token called')
+    // console.log('verify token called')
     try {
         // console.log('req header: ', req)
         const token = req.headers.authorization;
         const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-        console.log('decoded: ', decoded);
+        // console.log('decoded: ', decoded);
         next();
     } catch(err) {
         console.log('authentication error: ', err)
