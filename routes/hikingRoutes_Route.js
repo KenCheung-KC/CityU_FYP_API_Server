@@ -9,5 +9,7 @@ router.get('/', function(req, res, next) {
 });
 router.get('/hikingRouteList', hikingRoutesController.hikingRouteList)
 router.get('/hikingRouteList/:id', hikingRoutesController.getHikingRoute)
+router.post('/rateHikingRoute/:routeId', hikingRoutesController.rateForHikingRoute)
+router.put('/likeHikingRoute/:routeId', hikingRoutesController.likeHikingRoute)
 
 module.exports = router;

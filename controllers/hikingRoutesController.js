@@ -1,14 +1,33 @@
 const hikingRouteList = async (req, res) => {
-    const hikingRoutesResult = await pool.query(`SELECT * FROM hikingRoutes`)
-    // console.log(hikingRoutesResult.rows)
-    const hikingRoutes = hikingRoutesResult.rows
+    const { id: userId } = req.decoded
 
-    // setTimeout(() => {
-    //     res.send({
-    //         message: 'hiking route list',
-    //         hikingRoutes: hikingRoutes,
-    //     })     
-    // }, 3000)
+    const hikingRoutesResult = await pool.query(`SELECT * FROM hikingRoutes`)
+    const hikingRoutes = hikingRoutesResult.rows
+    const ratedHikingRoutesResult = await pool.query(`SELECT * FROM hikingRouteUserRating WHERE raterId = ${userId}`)
+    const ratedHikingRoutes = ratedHikingRoutesResult.rows
+    const userLikedRoutesResult = await pool.query(`SELECT * FROM hikingRouteUserLike WHERE likerId = ${userId} AND deletedAt IS NULL`)
+    const userLikedRoutes = userLikedRoutesResult.rows
+    console.log('zzz: ', userLikedRoutes)
+
+    for(let i=0; i<hikingRoutes.length; i++){
+        const hikingRoute = hikingRoutes[i]
+        for(let j=0; j<ratedHikingRoutes.length; j++){
+            const ratedHikingRoute = ratedHikingRoutes[j]
+            if(ratedHikingRoute.hikingrouteid == hikingRoute.id) {
+                hikingRoutes[i].userrating = ratedHikingRoute.rating
+            }
+        }
+        for(let k=0; k<userLikedRoutes.length; k++) {
+            const userLikedRoute = userLikedRoutes[k]
+            if(userLikedRoute.hikingrouteid == hikingRoute.id) {
+                hikingRoutes[i].userliked = true
+            }
+        }
+        if(userLikedRoutes.length == 0 || hikingRoutes[i].hasOwnProperty('userliked') == false) {
+            hikingRoutes[i].userliked = false 
+        }
+    }
+
     res.send({
         message: 'hiking route list',
         hikingRoutes: hikingRoutes,
@@ -16,12 +35,29 @@ const hikingRouteList = async (req, res) => {
 }
 
 const getHikingRoute = async (req, res) => {
-    const { id } = req.params
+    const { id: hikingRouteId } = req.params
+    const { id: userId } = req.decoded
     // console.log("params id: ", id)
 
-    const hikingRoutesResult = await pool.query(`SELECT * FROM hikingRoutes WHERE id = ${id}`)
+    const hikingRouteResult = await pool.query(`SELECT * FROM hikingRoutes WHERE id = ${hikingRouteId}`)
     // console.log('result: ', hikingRoutesResult.rows)
-    const routeResult = hikingRoutesResult.rows[0]
+    const routeResult = hikingRouteResult.rows[0]
+    const userRatedRoute = await pool.query(`SELECT * FROM hikingRouteUserRating WHERE raterId = ${userId} AND hikingRouteId = ${hikingRouteId}`)
+    userRateResult = userRatedRoute.rows[0]
+    // console.log('user rated result: ', userRateResult)
+    const userLikedRoutesResult = await pool.query(`SELECT * FROM hikingRouteUserLike WHERE likerId = ${userId} AND hikingRouteId = ${hikingRouteId} AND deletedAt IS NULL`)
+    const userLikedRoute = userLikedRoutesResult.rows[0]
+
+    if(userRateResult) {
+        const rating = userRateResult.rating
+        routeResult.userrating = rating
+    }
+
+    if(userLikedRoute) {
+        routeResult.userliked = true
+    } else {
+        routeResult.userliked = false
+    }
 
     res.send({
         message: 'respond from getHikingRoute',
@@ -29,7 +65,58 @@ const getHikingRoute = async (req, res) => {
     })
 }
 
+const rateForHikingRoute = async (req, res) => {
+    const { routeId } = req.params
+    const { userId: raterId, rating } = req.body
+    const alreadyRated = await pool.query(`SELECT * FROM hikingRouteUserRating WHERE raterId = ${raterId} AND hikingRouteId = ${routeId}`)
+    const isRated = alreadyRated.rows.length > 0 ? true : false
+
+    if (isRated) {
+        await pool.query(`UPDATE hikingRouteUserRating SET rating = ${rating} WHERE raterId = ${raterId} AND hikingRouteId = ${routeId}`)
+    } else {
+        await pool.query(`INSERT INTO hikingRouteUserRating (raterId, hikingRouteId, rating) VALUES (${raterId}, ${routeId}, ${rating});`, (err, res) => {
+            if(err) {
+                console.log('err from rateForHikingRoute: ', err)
+            }
+        })
+    }
+
+    res.send({
+        message: 'Rated for route!'
+    })
+}
+
+const likeHikingRoute = async (req, res) => {
+    const { routeId } = req.params
+    const { id: userId } = req.decoded
+
+    const userLikedRoute = await pool.query(`SELECT * FROM hikingRouteUserLike WHERE likerId = ${userId} AND hikingRouteId = ${routeId}`)
+    const isLiked = userLikedRoute.rows.length > 0 ? true : false
+
+    if(isLiked) { // record found
+        const userLikedRouteReuslt = userLikedRoute.rows[0]
+        const { deletedat: deletedAt } = userLikedRouteReuslt
+
+        switch (deletedAt) {
+            case null: // like -> not like
+                await pool.query(`UPDATE hikingRouteUserLike SET deletedAt = NOW() WHERE likerId = ${userId} AND hikingRouteId = ${routeId};`)
+                break;
+
+            default: // not like -> like
+                await pool.query(`UPDATE hikingRouteUserLike SET deletedAt = NULL WHERE likerId = ${userId} AND hikingRouteId = ${routeId};`)
+        }
+    } else { // no record
+        await pool.query(`INSERT INTO hikingRouteUserLike (likerId, hikingRouteId) VALUES (${userId}, ${routeId});`)
+    }
+
+    res.send({
+        message: 'Api called',
+    })
+}
+
 module.exports = {
     hikingRouteList,
     getHikingRoute,
+    rateForHikingRoute,
+    likeHikingRoute,
 }
