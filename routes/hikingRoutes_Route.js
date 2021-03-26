@@ -9,6 +9,7 @@ router.get('/', function(req, res, next) {
 });
 router.get('/hikingRouteList', hikingRoutesController.hikingRouteList)
 router.get('/hikingRouteList/:id', hikingRoutesController.getHikingRoute)
+router.get('/likedHikingRoutes', hikingRoutesController.likedHikingRouteList)
 router.post('/rateHikingRoute/:routeId', hikingRoutesController.rateForHikingRoute)
 router.put('/likeHikingRoute/:routeId', hikingRoutesController.likeHikingRoute)
 
