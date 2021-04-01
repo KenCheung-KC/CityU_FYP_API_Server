@@ -1,11 +1,11 @@
 const hikingRouteList = async (req, res) => {
     const { id: userId } = req.decoded
 
-    const hikingRoutesResult = await pool.query(`SELECT * FROM hikingRoutes`)
+    const hikingRoutesResult = await pool.query(`SELECT * FROM hikingRoutes WHERE deletedAt IS NULL ORDER BY name;`)
     const hikingRoutes = hikingRoutesResult.rows
-    const ratedHikingRoutesResult = await pool.query(`SELECT * FROM hikingRouteUserRating WHERE raterId = ${userId}`)
+    const ratedHikingRoutesResult = await pool.query(`SELECT * FROM hikingRouteUserRating WHERE raterId = ${userId};`)
     const ratedHikingRoutes = ratedHikingRoutesResult.rows
-    const userLikedRoutesResult = await pool.query(`SELECT * FROM hikingRouteUserLike WHERE likerId = ${userId} AND deletedAt IS NULL`)
+    const userLikedRoutesResult = await pool.query(`SELECT * FROM hikingRouteUserLike WHERE likerId = ${userId} AND deletedAt IS NULL;`)
     const userLikedRoutes = userLikedRoutesResult.rows
 
     for(let i=0; i<hikingRoutes.length; i++){
@@ -98,6 +98,17 @@ const likedHikingRouteList = async (req, res) => {
 
         return likedRouteDetailsResult
     }))
+
+    userLikedRoutesDetails.sort((a, b) => {
+        const { name: aName } = a
+        const { name: bName } = b
+
+        if(aName > bName) {
+            return 1
+        }
+
+        return -1
+    })
 
     res.send({
         message: 'GET likedHikingRoutesList called',
