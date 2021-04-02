@@ -9,6 +9,7 @@ var jwt = require('jsonwebtoken')
 var userRoute = require('./routes/userRoute')
 var hikingRoutes_Route = require('./routes/hikingRoutes_Route')
 var hikingToursRoute = require('./routes/hikingToursRoute')
+var recommendationRoute = require('./routes/recommendationRoute')
 
 var db = require('./database');
 var pool = db.getDBPool()
@@ -52,6 +53,7 @@ app.use('/user', userRoute)
 // app.use(verifyToken())
 app.use('/hikingRoute', verifyToken, hikingRoutes_Route)
 app.use('/hikingTour', verifyToken, hikingToursRoute)
+app.use('/recommendation', verifyToken, recommendationRoute)
 
 app.listen(process.env.PORT || 3000, () => {
     console.log('Server listening ')
