@@ -67,48 +67,7 @@ const getHikingRoute = async (req, res) => {
 const likedHikingRouteList = async (req, res) => {
     const { id: userId } = req.decoded
 
-    const likedHikingRoutes = await pool.query(`SELECT * FROM hikingRouteUserLike WHERE likerId = ${userId} AND deletedAt IS NULL;`)
-    const likedHikingRoutesResult = likedHikingRoutes.rows
-
-    const likedHikingRoutesId = likedHikingRoutesResult.map((result) => {
-        return result.hikingrouteid
-    })
-
-    const userLikedRoutesDetails = await Promise.all(likedHikingRoutesId.map(async (likedRouteId) => {
-        const likedRouteDetails = await pool.query(`SELECT * FROM hikingRoutes WHERE id = ${likedRouteId};`)
-        const likedRouteDetailsResult = likedRouteDetails.rows[0]
-        const userRatedRoutes = await pool.query(`SELECT hikingRouteId, rating FROM hikingRouteUserRating WHERE raterId = ${userId};`)
-        const userRatedRoutesResult = userRatedRoutes.rows
-        // const userLikedRoutes = await pool.query(`SELECT hikingRouteId FROM hikingRouteUserLike WHERE likerId = ${userId} AND deletedAt IS NULL;`)
-        // const userLikedRoutesResult = userLikedRoutes.rows
-
-        // set to false first, since it default value is false
-        likedRouteDetailsResult.userliked = false
-
-        for(let i=0; i<userRatedRoutesResult.length; i++) {
-            if(userRatedRoutesResult[i].hikingrouteid == likedRouteDetailsResult.id) {
-                likedRouteDetailsResult.userrating = userRatedRoutesResult[i].rating
-            }
-        }
-        for(let i=0; i<likedHikingRoutesResult.length; i++) {
-            if(likedHikingRoutesResult[i].hikingrouteid == likedRouteDetailsResult.id){
-                likedRouteDetailsResult.userliked = true
-            }
-        }
-
-        return likedRouteDetailsResult
-    }))
-
-    userLikedRoutesDetails.sort((a, b) => {
-        const { name: aName } = a
-        const { name: bName } = b
-
-        if(aName > bName) {
-            return 1
-        }
-
-        return -1
-    })
+    const userLikedRoutesDetails = await getUserLikedRoutes(userId)
 
     res.send({
         message: 'GET likedHikingRoutesList called',
@@ -165,10 +124,63 @@ const likeHikingRoute = async (req, res) => {
     })
 }
 
+
+const getUserLikedRoutes = async (userId) => {
+    const likedHikingRoutes = await pool.query(`SELECT * FROM hikingRouteUserLike WHERE likerId = ${userId} AND deletedAt IS NULL;`)
+    const likedHikingRoutesResult = likedHikingRoutes.rows
+
+    const likedHikingRoutesId = likedHikingRoutesResult.map((result) => {
+        return result.hikingrouteid
+    })
+
+    const userLikedRoutesDetails = await Promise.all(likedHikingRoutesId.map(async (likedRouteId) => {
+        const likedRouteDetails = await pool.query(`SELECT * FROM hikingRoutes WHERE id = ${likedRouteId};`)
+        const likedRouteDetailsResult = likedRouteDetails.rows[0]
+        const userRatedRoutes = await pool.query(`SELECT hikingRouteId, rating FROM hikingRouteUserRating WHERE raterId = ${userId};`)
+        const userRatedRoutesResult = userRatedRoutes.rows
+        // const userLikedRoutes = await pool.query(`SELECT hikingRouteId FROM hikingRouteUserLike WHERE likerId = ${userId} AND deletedAt IS NULL;`)
+        // const userLikedRoutesResult = userLikedRoutes.rows
+
+        // set to false first, since it default value is false
+        likedRouteDetailsResult.userliked = false
+
+        for(let i=0; i<userRatedRoutesResult.length; i++) {
+            if(userRatedRoutesResult[i].hikingrouteid == likedRouteDetailsResult.id) {
+                likedRouteDetailsResult.userrating = userRatedRoutesResult[i].rating
+            }
+        }
+        for(let i=0; i<likedHikingRoutesResult.length; i++) {
+            if(likedHikingRoutesResult[i].hikingrouteid == likedRouteDetailsResult.id){
+                likedRouteDetailsResult.userliked = true
+            }
+        }
+
+        return likedRouteDetailsResult
+    }))
+
+    userLikedRoutesDetails.sort((a, b) => {
+        const { name: aName } = a
+        const { name: bName } = b
+
+        if(aName > bName) {
+            return 1
+        }
+        
+        if(bName > aName) {
+            return -1
+        }
+
+        return 0
+    })
+
+    return userLikedRoutesDetails
+}
+
 module.exports = {
     hikingRouteList,
     getHikingRoute,
     likedHikingRouteList,
     rateForHikingRoute,
     likeHikingRoute,
+    getUserLikedRoutes,
 }
