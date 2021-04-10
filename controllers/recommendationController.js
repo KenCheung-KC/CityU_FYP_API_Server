@@ -6,35 +6,52 @@ const recommendationRoutes = async (req, res) => {
     const { id: userId } = req.decoded
     const contentBasedRecommendedRoutes = await getContentBasedRecommendation(userId)
     const collaborativeFilteringRecommendedRoutes = await getCollaborativeFilteringRecommendedRoutes(userId)
-    const hybridRecommendationHikingRoutes = []
+    var hybridRecommendationHikingRoutes = []
 
     // has likes and rating
-    if(collaborativeFilteringRecommendedRoutes.length > 0 && hybridRecommendationHikingRoutes.length > 0) {
-        for(let j=0; j<collaborativeFilteringRecommendedRoutes; j++) {
-            console.log('aaaa')
-            if(hybridRecommendationHikingRoutes.length < 10) {
-                for(let k=0; k<hybridRecommendationHikingRoutes.length; k++) {
-                    console.log('running')
-                    if(collaborativeFilteringRecommendedRoutes[j].id == hybridRecommendationHikingRoutes[k].id) {
-                        continue
-                    }
-                    hybridRecommendationHikingRoutes.push(collaborativeFilteringRecommendedRoutes[j])
-                    break;
+    if(contentBasedRecommendedRoutes.length > 0 && collaborativeFilteringRecommendedRoutes.length > 0) {
+        var top5ContentBasedRecommendedRoutes = []
+        var top5CollaborativeFilteringRecommendedRoutes = []
+        for(let i=0; i<5; i++) {
+            const contentBasedRoute = contentBasedRecommendedRoutes[i]
+            contentBasedRoute.recommendedbycontentbased = true
+            top5ContentBasedRecommendedRoutes.push(contentBasedRoute)
+        }
+        for(let j=0; j<5; j++) {
+            const collaborativeFilteringRecommendedRoute = collaborativeFilteringRecommendedRoutes[j]
+            collaborativeFilteringRecommendedRoute.recommendedbycollaborativefiltering = true
+            top5CollaborativeFilteringRecommendedRoutes.push(collaborativeFilteringRecommendedRoute)
+        }
+        hybridRecommendationHikingRoutes = [...top5ContentBasedRecommendedRoutes]
+        for(let k=0; k<top5CollaborativeFilteringRecommendedRoutes.length; k++) {
+            var duplicated = false
+            const currentCFRoute = top5CollaborativeFilteringRecommendedRoutes[k]
+            for(let l=0; l<5; l++) {
+                const currentCBRoute = hybridRecommendationHikingRoutes[l]
+                if(currentCFRoute.id == currentCBRoute.id) {
+                    duplicated = true
+                    hybridRecommendationHikingRoutes[l].recommendedbycollaborativefiltering = true
+                    break
                 }
+            }
+            if(duplicated == false) {
+                hybridRecommendationHikingRoutes.push(currentCFRoute)
             }
         }
     }
 
     // no likes, but has rating
     if(hybridRecommendationHikingRoutes.length == 0 && collaborativeFilteringRecommendedRoutes.length > 0) {
-        for(let j=0; j<10; j++) {
-            hybridRecommendationHikingRoutes.push(collaborativeFilteringRecommendedRoutes[j])
+        for(let i=0; i<10; i++) {
+            collaborativeFilteringRecommendedRoutes[i].recommendedbycollaborativefiltering = true
+            hybridRecommendationHikingRoutes.push(collaborativeFilteringRecommendedRoutes[i])
         }
     }
 
     // no rating, but has likes
     if(contentBasedRecommendedRoutes.length > 0 && collaborativeFilteringRecommendedRoutes.length == 0) {
         for(let i=0; i<10; i++) {
+            contentBasedRecommendedRoutes[i].recommendedbycontentbased = true
             hybridRecommendationHikingRoutes.push(contentBasedRecommendedRoutes[i])
         }
     }
@@ -42,10 +59,13 @@ const recommendationRoutes = async (req, res) => {
     // no likes and ratings
     if(contentBasedRecommendedRoutes.length == 0 && collaborativeFilteringRecommendedRoutes.length == 0) {
         const topRatingRoutes = await getTopRatingHikingRoutes(10)
-        for(leti=0; i<topRatingRoutes.length; i++) {
+        for(let i=0; i<topRatingRoutes.length; i++) {
+            topRatingRoutes[i].recommendedforcoldstart = true
             hybridRecommendationHikingRoutes.push(topRatingRoutes[i])
         }
     }
+
+    console.log('recommendation result: ', hybridRecommendationHikingRoutes)
 
     res.send({
         message: 'recommendation API called!',
@@ -177,13 +197,16 @@ const getAllRatedUsersId = async() => {
     return allRatedUsersId
 }
 
-const getUtilityMatrix = async () => {
+const getUtilityMatrix = async (userId) => {
     const allHikingRoutesId = await getAllHikingRoutesId()
     const allRatedUsersId = await getAllRatedUsersId()
     const allUsersRating = await getAllUsersRatingRecords()
     const hikingRoutesAmount = allHikingRoutesId.length
     const ratedUsersAmount = allRatedUsersId.length
     const utilityMatrix = initializeMatrix(ratedUsersAmount, hikingRoutesAmount, 0)
+    const userIndexForUtilityMatrix = allRatedUsersId.indexOf(userId)
+    console.log('user id: ', userId)
+    console.log('user index: ', userIndexForUtilityMatrix)
 
     for(let i=0; i<allUsersRating.length; i++) {
         const userRating = allUsersRating[i]
@@ -195,18 +218,18 @@ const getUtilityMatrix = async () => {
     return utilityMatrix
 }
 
-const getSimilarityMatrix = async () => {
+const getSimilarityMatrix = async (userId) => {
     const allHikingRoutesId = await getAllHikingRoutesId()
     const allRatedUsersId = await getAllRatedUsersId()
     const hikingRoutesAmount = allHikingRoutesId.length
-    const similartyMatrix = initializeMatrix(hikingRoutesAmount, hikingRoutesAmount, 0)
-    const utilityMatrix = await getUtilityMatrix()
+    const similarityMatrix = initializeMatrix(hikingRoutesAmount, hikingRoutesAmount, 0)
+    const utilityMatrix = await getUtilityMatrix(userId)
 
     // calculate the similarity value here
-    for(let i=0; i<similartyMatrix.length; i++) {
-        for(let j=0; j<similartyMatrix[i].length; j++) {
+    for(let i=0; i<similarityMatrix.length; i++) {
+        for(let j=0; j<similarityMatrix[i].length; j++) {
             if(i == j) {
-                similartyMatrix[i][j] = 1
+                similarityMatrix[i][j] = 1
                 continue
             }
             var numerator = 0;
@@ -223,25 +246,23 @@ const getSimilarityMatrix = async () => {
                 continue
             }
             const similarity = numerator / denominator
-            similartyMatrix[i][j] = similarity
-            // similartyMatrix[i][j] = Math.round(similarity * 1000) / 1000
+            similarityMatrix[i][j] = similarity
+            // similarityMatrix[i][j] = Math.round(similarity * 100) / 100
         }
     }
 
     console.log('utility matrix:')
     console.table(utilityMatrix)
-    // console.log('sim:')
     console.log('similarity matrix:')
-    // printMatrix(similartyMatrix)
-    console.table(similartyMatrix)
+    console.table(similarityMatrix)
 
-    return similartyMatrix
+    return similarityMatrix
 }
 
 const getCollaborativeFilteringRecommendedRoutes = async(userId) => {
     const allHikingRoutesId = await getAllHikingRoutesId()
-    const utilityMatrix = await getUtilityMatrix()
-    const similarityMatrix = await getSimilarityMatrix()
+    const utilityMatrix = await getUtilityMatrix(userId)
+    const similarityMatrix = await getSimilarityMatrix(userId)
     const allRatedUsersId = await getAllRatedUsersId()
     const userIndex = allRatedUsersId.indexOf(userId)
     const userRatingRecord = utilityMatrix[userIndex] || []
@@ -295,7 +316,6 @@ const getCollaborativeFilteringRecommendedRoutes = async(userId) => {
     const collaborativeFilteringRecommendedRoutesId = collaborativeFilteringRecommendedRoutes.map((recommendedRouteObject) => {
         return recommendedRouteObject.routeId
     })
-
     const allHikingRoutes = await getAllHikingRoutes()
     const collaborativeFilteringRecommendedRoutesDetail = []
     for(let l=0; l<collaborativeFilteringRecommendedRoutesId.length; l++) {
@@ -310,14 +330,14 @@ const getCollaborativeFilteringRecommendedRoutes = async(userId) => {
 }
 
 const getTopRatingHikingRoutes = async(routesAmount) => {
-    const topRatingHikingRoutesResult = await pool.query(`SELECT * FROM hikingRoutes WHERE id IN (SELECT hikingRouteId FROM hikingRouteUserRating GROUP BY hikingRouteId ORDER BY AVG(rating) DESC LIMIT ${routesAmount};`)
+    const topRatingHikingRoutesResult = await pool.query(`SELECT * FROM hikingRoutes WHERE id IN (SELECT hikingRouteId FROM hikingRouteUserRating GROUP BY hikingRouteId ORDER BY AVG(rating) DESC LIMIT ${routesAmount});`)
     const topRatingHikingRoutes = topRatingHikingRoutesResult.rows
     const recommendedRoutes = []
     for(let i=0; i<routesAmount; i++) {
         topRatingHikingRoutes[i].userliked = false
         recommendedRoutes.push(topRatingHikingRoutes[i])
     }
-    console.log('top rating routes: ', recommendedRoutes)
+    // console.log('top rating routes: ', recommendedRoutes)
     return recommendedRoutes
 }
 
