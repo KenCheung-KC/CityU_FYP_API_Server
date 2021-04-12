@@ -33,7 +33,7 @@ const register = async (req, res) => {
     .catch(err => {
         console.log('err:', err)
     })
-    res.send('User created!')
+    res.send('Account created!')
 }
 
 const login = async (req, res) => {
