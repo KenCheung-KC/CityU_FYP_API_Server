@@ -43,16 +43,20 @@ const recommendationRoutes = async (req, res) => {
     // no likes, but has rating
     if(hybridRecommendationHikingRoutes.length == 0 && collaborativeFilteringRecommendedRoutes.length > 0) {
         for(let i=0; i<10; i++) {
-            collaborativeFilteringRecommendedRoutes[i].recommendedbycollaborativefiltering = true
-            hybridRecommendationHikingRoutes.push(collaborativeFilteringRecommendedRoutes[i])
+            if(collaborativeFilteringRecommendedRoutes[i]) {
+                collaborativeFilteringRecommendedRoutes[i].recommendedbycollaborativefiltering = true
+                hybridRecommendationHikingRoutes.push(collaborativeFilteringRecommendedRoutes[i])
+            }
         }
     }
 
     // no rating, but has likes
     if(contentBasedRecommendedRoutes.length > 0 && collaborativeFilteringRecommendedRoutes.length == 0) {
         for(let i=0; i<10; i++) {
-            contentBasedRecommendedRoutes[i].recommendedbycontentbased = true
-            hybridRecommendationHikingRoutes.push(contentBasedRecommendedRoutes[i])
+            if(contentBasedRecommendedRoutes[i]) {
+                contentBasedRecommendedRoutes[i].recommendedbycontentbased = true
+                hybridRecommendationHikingRoutes.push(contentBasedRecommendedRoutes[i])
+            }
         }
     }
 
@@ -65,7 +69,12 @@ const recommendationRoutes = async (req, res) => {
         }
     }
 
-    console.log('recommendation result: ', hybridRecommendationHikingRoutes)
+    console.log('recommendation result:')
+    for(let z=0; z<hybridRecommendationHikingRoutes.length; z++) {
+        const { id, name } = hybridRecommendationHikingRoutes[z]
+        const result = { routeId: id, routeName: name }
+        console.log(result)
+    }
 
     res.send({
         message: 'recommendation API called!',
@@ -112,9 +121,10 @@ const getContentBasedRecommendation = async(userId) => {
     })
 
     const contentBased_recommendedHikingRoutes = removeDuplicateItem(sortedJaccardSimResult)
+    console.log('Content based filtering:')
     for(let i=0; i<contentBased_recommendedHikingRoutes.length; i++){
         contentBased_recommendedHikingRoutes[i].userliked = false
-        // console.log('b: ', contentBased_recommendedHikingRoutes[i].id + ' sim score: ' + contentBased_recommendedHikingRoutes[i].jaccardSimilarityScore)
+        console.log('route id: ', contentBased_recommendedHikingRoutes[i].id + ', name: ' + contentBased_recommendedHikingRoutes[i].name + ', sim score: ' + contentBased_recommendedHikingRoutes[i].jaccardSimilarityScore)
     }
     return contentBased_recommendedHikingRoutes
 }
@@ -223,6 +233,7 @@ const getSimilarityMatrix = async (userId) => {
     const allRatedUsersId = await getAllRatedUsersId()
     const hikingRoutesAmount = allHikingRoutesId.length
     const similarityMatrix = initializeMatrix(hikingRoutesAmount, hikingRoutesAmount, 0)
+    const similarityMatrixForDisplay = initializeMatrix(hikingRoutesAmount, hikingRoutesAmount, 0)
     const utilityMatrix = await getUtilityMatrix(userId)
 
     // calculate the similarity value here
@@ -230,6 +241,7 @@ const getSimilarityMatrix = async (userId) => {
         for(let j=0; j<similarityMatrix[i].length; j++) {
             if(i == j) {
                 similarityMatrix[i][j] = 1
+                similarityMatrixForDisplay[i][j] = 1
                 continue
             }
             var numerator = 0;
@@ -248,13 +260,15 @@ const getSimilarityMatrix = async (userId) => {
             const similarity = numerator / denominator
             similarityMatrix[i][j] = similarity
             // similarityMatrix[i][j] = Math.round(similarity * 100) / 100
+            similarityMatrixForDisplay[i][j] = Math.round(similarity * 100) / 100
         }
     }
 
     console.log('utility matrix:')
     console.table(utilityMatrix)
     console.log('similarity matrix:')
-    console.table(similarityMatrix)
+    // console.table(similarityMatrix)
+    console.table(similarityMatrixForDisplay)
 
     return similarityMatrix
 }
@@ -275,7 +289,7 @@ const getCollaborativeFilteringRecommendedRoutes = async(userId) => {
         var numerator = 0;
         var denominator = 0;
         for(let j=0; j<userRatingRecord.length; j++) {
-            if(j==i) {
+            if(j==i || userRatingRecord[j] == 0) {
                 continue
             }
             numerator += userRatingRecord[j] * similarityMatrix[j][i]
@@ -312,7 +326,7 @@ const getCollaborativeFilteringRecommendedRoutes = async(userId) => {
         }
         return 0
     })
-    // console.log('collaborative after sort: ', collaborativeFilteringRecommendedRoutes)
+    console.log('collaborative after sort: ', collaborativeFilteringRecommendedRoutes)
     const collaborativeFilteringRecommendedRoutesId = collaborativeFilteringRecommendedRoutes.map((recommendedRouteObject) => {
         return recommendedRouteObject.routeId
     })
