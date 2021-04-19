@@ -136,6 +136,16 @@ const editTour = async (req, res) => {
     })
 }
 
+const getTourParticipants = async (req, res) => {
+    const { tourId } = req.params
+
+    const tourParticipants = await pool.query(`SELECT username FROM users, hikingTourParticipants WHERE hikingTourParticipants.hikingtourID = ${tourId} AND hikingTourParticipants.participantID = users.id;`)
+
+    res.send({
+        participants: tourParticipants.rows
+    })
+} 
+
 module.exports = {
     hikingToursList,
     joinHikingTour,
@@ -143,4 +153,5 @@ module.exports = {
     getUserHostedTours,
     createTour,
     editTour,
+    getTourParticipants,
 }
