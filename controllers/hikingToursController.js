@@ -13,15 +13,26 @@ const hikingToursList = async (req, res) => {
 const joinHikingTour = async (req, res) => {
     const { userId } = req.body
     const { id } = req.params
-
     const targetHikingTour = await pool.query(`SELECT * from hikingTourParticipants WHERE hikingTourId = ${id}`)
     const maximumParticipant = await pool.query(`SELECT maximumParticipant FROM hikingTours WHERE id = ${id}`)
-    const targetHikingTourIsFull = targetHikingTour.rows.length >= maximumParticipant.rows[0].maximumParticipant ? true : false
+    const targetHikingTourIsFull = targetHikingTour.rows.length >= maximumParticipant.rows[0].maximumparticipant ? true : false
+    const participantsUserId = targetHikingTour.rows.map((elem) => {
+        return elem.participantid
+    })
+    const alreadyParticipanted = participantsUserId.includes(parseInt(userId, 10))
 
-    if (targetHikingTourIsFull) {
+    if(alreadyParticipanted) {
+        res.send({
+            message: 'Already participated!',
+        })
+        return
+    }
+
+    if (targetHikingTourIsFull && !alreadyParticipanted) {
         res.send({
             message: 'This tour is full!',
         })
+        return
     }
 
     const checkParticipateRecord = await pool.query(`SELECT * FROM hikingTourParticipants WHERE participantId = ${userId} AND hikingTourId = ${id}`)
