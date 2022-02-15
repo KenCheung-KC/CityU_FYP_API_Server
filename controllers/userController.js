@@ -1,33 +1,33 @@
 const bcryptService = require('../service/bcryptService')
 const jwt = require('jsonwebtoken')
 
-const index = (req, res) => {
-    res.send('This is index controller!')
-}
-
 const register = async (req, res) => {
     const { username, email, password } = req.body
     
+    // check if any information is missed
     if(!username || !email || !password){
         res.send('Please enter all required information')
         return
     }
+
+    // check if email is used
     const registeredEmail = await pool.query(`SELECT email FROM users WHERE email = '${email}';`)
     if(registeredEmail.rowCount > 0) {
         res.send('Email already used')
         return
     }
 
+    // check if username is used
     const registeredUsername = await pool.query(`SELECT email FROM users WHERE username = '${username}';`)
     if(registeredUsername.rowCount > 0) {
         res.send('Username already used')
         return
     }
-    // const now = new Date().toISOString()
 
+    // hash the password
     const encryptedPassword = await bcryptService.encryptPassword(password)
 
-    // await pool.query(`INSERT INTO users (role, username, email, password, createdAt) VALUES ('user', '${username}', '${email}', '${encryptedPassword}', '${now}');`)
+    // store user information into database
     await pool.query(`INSERT INTO users (role, username, email, password) VALUES ('user', '${username}', '${email}', '${encryptedPassword}');`)
     .then(res => console.log(res))
     .catch(err => {
@@ -40,6 +40,7 @@ const login = async (req, res) => {
     const { username, password } = req.body
     var message = '';
 
+    // check if username or password is missed
     if(!username || !password) {
         message = 'Please enter both username and password'
         res.send({
@@ -48,9 +49,8 @@ const login = async (req, res) => {
         return
     }
 
-    // Check username is valid or not
+    // Check username is existing or not
     const usernameResult = await pool.query(`SELECT username FROM users WHERE username = '${username}'`)
-
     if (usernameResult.rowCount == 0) {
         message = 'Invalid username!'
         res.send({
@@ -59,10 +59,9 @@ const login = async (req, res) => {
         return
     }
 
+    // if username and password are correct, assign a token to user for subsequent requests
     const userEntity = await pool.query(`SELECT * FROM users WHERE username = '${username}'`)
-
     const user = userEntity.rows[0]
-
     const { password: hashedPassword } = user
     const correctPassowrd = await bcryptService.comparePassword(password, hashedPassword)
 
@@ -76,15 +75,13 @@ const login = async (req, res) => {
     } else {
         const tokenPayload = {
             id: user.id,
-            role: user.id,
+            role: user.role,
             username: user.username,
             email: user.email
         }
         message = 'login success'
         const token = jwt.sign(tokenPayload, process.env.JWT_SECRET_KEY);
-        // console.log('token: ', token)
-        const {password, ...userWithoutPassword} = user
-        // console.log('userWithoutPassword: ', userWithoutPassword)
+        const { password, ...userWithoutPassword } = user // object destructuring, take off the hashed password
         res.send({
             token, 
             message,
@@ -94,7 +91,6 @@ const login = async (req, res) => {
 }
 
 module.exports = {
-    index,
     register,
     login,
 };

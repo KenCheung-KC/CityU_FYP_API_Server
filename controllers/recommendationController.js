@@ -1,5 +1,6 @@
 var hikingRouteController = require('./hikingRoutesController')
 
+// features for content based filtering
 const hikingRouteFeatures = ['location', 'difficulty', 'distance', 'elevationgain', 'stars', 'dogfriendly', 'kidfriendly', 'camping', 'river', 'wildflower', 'wildlife', 'estimatedduration']
 
 const recommendationRoutes = async (req, res) => {
@@ -8,7 +9,7 @@ const recommendationRoutes = async (req, res) => {
     const collaborativeFilteringRecommendedRoutes = await getCollaborativeFilteringRecommendedRoutes(userId)
     var hybridRecommendationHikingRoutes = []
 
-    // has likes and rating
+    // user has like and rate the route
     if(contentBasedRecommendedRoutes.length > 0 && collaborativeFilteringRecommendedRoutes.length > 0) {
         var top5ContentBasedRecommendedRoutes = []
         var top5CollaborativeFilteringRecommendedRoutes = []
@@ -40,8 +41,8 @@ const recommendationRoutes = async (req, res) => {
         }
     }
 
-    // no likes, but has rating
-    if(hybridRecommendationHikingRoutes.length == 0 && collaborativeFilteringRecommendedRoutes.length > 0) {
+    // user has not like any route, but has rate the route
+    if(contentBasedRecommendedRoutes.length == 0 && collaborativeFilteringRecommendedRoutes.length > 0) {
         for(let i=0; i<10; i++) {
             if(collaborativeFilteringRecommendedRoutes[i]) {
                 collaborativeFilteringRecommendedRoutes[i].recommendedbycollaborativefiltering = true
@@ -50,7 +51,7 @@ const recommendationRoutes = async (req, res) => {
         }
     }
 
-    // no rating, but has likes
+    // user has not rate any route, but has like the route
     if(contentBasedRecommendedRoutes.length > 0 && collaborativeFilteringRecommendedRoutes.length == 0) {
         for(let i=0; i<10; i++) {
             if(contentBasedRecommendedRoutes[i]) {
@@ -60,7 +61,7 @@ const recommendationRoutes = async (req, res) => {
         }
     }
 
-    // no likes and ratings
+    // user has not like and rate any route
     if(contentBasedRecommendedRoutes.length == 0 && collaborativeFilteringRecommendedRoutes.length == 0) {
         const topRatingRoutes = await getTopRatingHikingRoutes(10)
         for(let i=0; i<topRatingRoutes.length; i++) {
@@ -103,7 +104,7 @@ const getContentBasedRecommendation = async(userId) => {
         }
     }
 
-    // filter the liked routes
+    // filter user liked routes
     const sortedJaccardSimResult = jaccardSimilarityResult.filter(({ id }) => {
         return !userLikedRoutesId.includes(id)
     })
@@ -120,13 +121,13 @@ const getContentBasedRecommendation = async(userId) => {
         return 0
     })
 
-    const contentBased_recommendedHikingRoutes = removeDuplicateItem(sortedJaccardSimResult)
+    const contentBasedRecommendedHikingRoutes = removeDuplicateItem(sortedJaccardSimResult)
     console.log('Content based filtering:')
-    for(let i=0; i<contentBased_recommendedHikingRoutes.length; i++){
-        contentBased_recommendedHikingRoutes[i].userliked = false
-        console.log('route id: ', contentBased_recommendedHikingRoutes[i].id + ', name: ' + contentBased_recommendedHikingRoutes[i].name + ', sim score: ' + contentBased_recommendedHikingRoutes[i].jaccardSimilarityScore)
+    for(let i=0; i<contentBasedRecommendedHikingRoutes.length; i++){
+        contentBasedRecommendedHikingRoutes[i].userliked = false
+        console.log('route id: ', contentBasedRecommendedHikingRoutes[i].id + ', name: ' + contentBasedRecommendedHikingRoutes[i].name + ', sim score: ' + contentBasedRecommendedHikingRoutes[i].jaccardSimilarityScore)
     }
-    return contentBased_recommendedHikingRoutes
+    return contentBasedRecommendedHikingRoutes
 }
 
 const getAllHikingRoutes = async () => {
@@ -214,9 +215,9 @@ const getUtilityMatrix = async (userId) => {
     const hikingRoutesAmount = allHikingRoutesId.length
     const ratedUsersAmount = allRatedUsersId.length
     const utilityMatrix = initializeMatrix(ratedUsersAmount, hikingRoutesAmount, 0)
-    const userIndexForUtilityMatrix = allRatedUsersId.indexOf(userId)
-    console.log('user id: ', userId)
-    console.log('user index: ', userIndexForUtilityMatrix)
+    // const userIndexForUtilityMatrix = allRatedUsersId.indexOf(userId)
+    // console.log('user id: ', userId)
+    // console.log('user index: ', userIndexForUtilityMatrix)
 
     for(let i=0; i<allUsersRating.length; i++) {
         const userRating = allUsersRating[i]
@@ -326,7 +327,7 @@ const getCollaborativeFilteringRecommendedRoutes = async(userId) => {
         }
         return 0
     })
-    console.log('collaborative after sort: ', collaborativeFilteringRecommendedRoutes)
+    // console.log('collaborative after sort: ', collaborativeFilteringRecommendedRoutes)
     const collaborativeFilteringRecommendedRoutesId = collaborativeFilteringRecommendedRoutes.map((recommendedRouteObject) => {
         return recommendedRouteObject.routeId
     })

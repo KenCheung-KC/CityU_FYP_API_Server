@@ -7,7 +7,7 @@ var bodyParser = require('body-parser')
 var jwt = require('jsonwebtoken')
 
 var userRoute = require('./routes/userRoute')
-var hikingRoutes_Route = require('./routes/hikingRoutes_Route')
+var hikingRoutesRoute = require('./routes/hikingRoutesRoute')
 var hikingToursRoute = require('./routes/hikingToursRoute')
 var recommendationRoute = require('./routes/recommendationRoute')
 
@@ -15,14 +15,12 @@ var db = require('./database');
 var pool = db.getDBPool()
 global.pool = pool
 
+// verify the request, if user is not authenticated, the request will be blocked.
 const verifyToken = (req, res, next) => {
-    // console.log('verify token called')
     try {
-        // console.log('req header: ', req)
         const token = req.headers.authorization;
         const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-        // console.log('decoded: ', decoded);
-        req.decoded = decoded
+        req.decoded = decoded 
         next();
     } catch(err) {
         console.log('authentication error: ', err)
@@ -39,19 +37,12 @@ global.pictureDirctory = dir
 // serve static file if user request to /pictures
 app.use('/pictures', express.static(dir));
 
-app.post('/login')
-
-// verify token below login
-// app.use(verifyToken())
-
-
 app.get('/', (req, res) => {
-    res.send('abcde')
+    res.send('hello')
 })
 
 app.use('/user', userRoute)
-// app.use(verifyToken())
-app.use('/hikingRoute', verifyToken, hikingRoutes_Route)
+app.use('/hikingRoute', verifyToken, hikingRoutesRoute)
 app.use('/hikingTour', verifyToken, hikingToursRoute)
 app.use('/recommendation', verifyToken, recommendationRoute)
 

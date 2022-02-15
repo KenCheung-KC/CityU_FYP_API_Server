@@ -1,6 +1,5 @@
 const hikingRouteList = async (req, res) => {
     const { id: userId } = req.decoded
-
     const hikingRoutesResult = await pool.query(`SELECT * FROM hikingRoutes WHERE deletedAt IS NULL ORDER BY name;`)
     const hikingRoutes = hikingRoutesResult.rows
     const ratedHikingRoutesResult = await pool.query(`SELECT * FROM hikingRouteUserRating WHERE raterId = ${userId};`)
@@ -36,14 +35,11 @@ const hikingRouteList = async (req, res) => {
 const getHikingRoute = async (req, res) => {
     const { id: hikingRouteId } = req.params
     const { id: userId } = req.decoded
-    // console.log("params id: ", id)
 
     const hikingRouteResult = await pool.query(`SELECT * FROM hikingRoutes WHERE id = ${hikingRouteId}`)
-    // console.log('result: ', hikingRoutesResult.rows)
     const routeResult = hikingRouteResult.rows[0]
     const userRatedRoute = await pool.query(`SELECT * FROM hikingRouteUserRating WHERE raterId = ${userId} AND hikingRouteId = ${hikingRouteId}`)
     userRateResult = userRatedRoute.rows[0]
-    // console.log('user rated result: ', userRateResult)
     const userLikedRoutesResult = await pool.query(`SELECT * FROM hikingRouteUserLike WHERE likerId = ${userId} AND hikingRouteId = ${hikingRouteId} AND deletedAt IS NULL`)
     const userLikedRoute = userLikedRoutesResult.rows[0]
 
@@ -66,7 +62,6 @@ const getHikingRoute = async (req, res) => {
 
 const likedHikingRouteList = async (req, res) => {
     const { id: userId } = req.decoded
-
     const userLikedRoutesDetails = await getUserLikedRoutes(userId)
 
     res.send({
@@ -99,7 +94,6 @@ const rateForHikingRoute = async (req, res) => {
 const likeHikingRoute = async (req, res) => {
     const { routeId } = req.params
     const { id: userId } = req.decoded
-
     const userLikedRoute = await pool.query(`SELECT * FROM hikingRouteUserLike WHERE likerId = ${userId} AND hikingRouteId = ${routeId}`)
     const isLiked = userLikedRoute.rows.length > 0 ? true : false
 
@@ -138,10 +132,8 @@ const getUserLikedRoutes = async (userId) => {
         const likedRouteDetailsResult = likedRouteDetails.rows[0]
         const userRatedRoutes = await pool.query(`SELECT hikingRouteId, rating FROM hikingRouteUserRating WHERE raterId = ${userId};`)
         const userRatedRoutesResult = userRatedRoutes.rows
-        // const userLikedRoutes = await pool.query(`SELECT hikingRouteId FROM hikingRouteUserLike WHERE likerId = ${userId} AND deletedAt IS NULL;`)
-        // const userLikedRoutesResult = userLikedRoutes.rows
 
-        // set to false first, since it default value is false
+        // set userLiked to false first
         likedRouteDetailsResult.userliked = false
 
         for(let i=0; i<userRatedRoutesResult.length; i++) {
@@ -158,14 +150,14 @@ const getUserLikedRoutes = async (userId) => {
         return likedRouteDetailsResult
     }))
 
-    userLikedRoutesDetails.sort((a, b) => {
-        const { name: aName } = a
-        const { name: bName } = b
+    // sort the result in alphabetical order
+    userLikedRoutesDetails.sort((routeA, routeB) => {
+        const { name: aName } = routeA
+        const { name: bName } = routeB
 
         if(aName > bName) {
             return 1
-        }
-        
+        }        
         if(bName > aName) {
             return -1
         }

@@ -1,15 +1,15 @@
+// list all hiking tours
 const hikingToursList = async (req, res) => {
-
     const hikingToursResult = await pool.query(`SELECT hikingTours.*, hikingRoutes.hikingRouteImage, hikingRoutes.name AS hikingroutename, users.username AS hostname FROM hikingTours, hikingRoutes, users WHERE hikingTours.hikingRouteId = hikingRoutes.id AND hikingTours.dateAndTime >= NOW() AND hikingTours.hostId = users.id ORDER BY hikingTours.id DESC;`)
-
     const hikingTours = hikingToursResult.rows
 
     res.send({
         message: 'hiking tour list',
         hikingTours: hikingTours,
-    }) 
+    })
 }
 
+// join hiking tour
 const joinHikingTour = async (req, res) => {
     const { userId } = req.body
     const { id } = req.params
@@ -39,7 +39,7 @@ const joinHikingTour = async (req, res) => {
     const userAlreadyParticipated = checkParticipateRecord.rows.length > 0 ? true : false
 
     if (!userAlreadyParticipated) {
-        const insertHikingTourParticipant = await pool.query(`INSERT INTO hikingTourParticipants (participantId, hikingTourId) VALUES (${userId}, ${id});`, (err, res) => {
+        await pool.query(`INSERT INTO hikingTourParticipants (participantId, hikingTourId) VALUES (${userId}, ${id});`, (err, result) => {
             if (err) {
                 console.log('database err: ', err)
             }  
@@ -101,9 +101,6 @@ const createTour = async (req, res) => {
     // some characters will be encoded e.g. #, +, $, @ and space etc.
     const newDateAndTime = dateAndTime.replace(" ", "+");
 
-    // const sqlString = `INSERT INTO hikingTours (hikingRouteId, hostId, tourName, tourDescription, maximumParticipant, minimumParticipant, dateAndTime, restaurantIncluded, price) VALUES (${hikingRouteId}, ${hostId}, '${tourName}', '${tourDescription}', ${maximumParticipants}, ${minimumParticipants}, '${newDateAndTime}', FALSE, 0);`
-    // console.log('SQL: ', sqlString)
-
     await pool.query(`INSERT INTO hikingTours (hikingRouteId, hostId, tourName, tourDescription, maximumParticipant, minimumParticipant, dateAndTime, restaurantIncluded, price) VALUES (${hikingRouteId}, ${hostId}, '${tourName}', '${tourDescription}', ${maximumParticipants}, ${minimumParticipants}, '${newDateAndTime}', FALSE, ${price}) RETURNING id;`, 
     async (err, result) => {
         if (err) {
@@ -122,7 +119,6 @@ const createTour = async (req, res) => {
 const editTour = async (req, res) => {
     const { tourId } = req.params
     const {
-        hostId,
         tourName,
         hikingRouteId,
         maximumParticipants,
